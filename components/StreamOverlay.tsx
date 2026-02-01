@@ -15,7 +15,7 @@ const CUSTOM_MESSAGES = [
 // Define Ticker Items GLOBALLY to ensure absolute referential stability across renders
 const STATIC_TICKER_ITEMS = [
     ...CUSTOM_MESSAGES,
-    `SYSTEM_VER: TL.1.17.74-M`, // Updated Version
+    `SYSTEM_VER: TL.1.17.74-N`, // Updated Version
     `VOID_OS: ONLINE // MONITORING...`
 ];
 
