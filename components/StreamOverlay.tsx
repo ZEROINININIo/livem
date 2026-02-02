@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Activity, Wifi, Cpu, Hexagon, AlertTriangle, Radio, User, Video, Ruler, Crosshair, Zap, Timer, Play, Square, RotateCcw, Edit2, Plus, Trash2, Save, X, Check, Terminal } from 'lucide-react';
+import { Clock, Activity, Wifi, Cpu, Hexagon, AlertTriangle, Radio, User, Video, Ruler, Crosshair, Zap, Timer, Play, Square, RotateCcw, Edit2, Plus, Trash2, Save, X, Check, Terminal, RefreshCw } from 'lucide-react';
 
 // --- Constants & Storage ---
 const STORAGE_KEY_MESSAGES = 'nova_stream_messages_v1';
@@ -100,9 +100,10 @@ interface EditorModalProps {
     onClose: () => void;
     onSave: (newItems: string[]) => void;
     onSetActive?: (item: string) => void;
+    onReset: () => void;
 }
 
-const EditorModal: React.FC<EditorModalProps> = ({ title, items, activeItem, onClose, onSave, onSetActive }) => {
+const EditorModal: React.FC<EditorModalProps> = ({ title, items, activeItem, onClose, onSave, onSetActive, onReset }) => {
     const [localItems, setLocalItems] = useState(items);
     const [newItemText, setNewItemText] = useState("");
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -138,15 +139,29 @@ const EditorModal: React.FC<EditorModalProps> = ({ title, items, activeItem, onC
         setEditingIndex(null);
     };
 
+    const handleReset = () => {
+        if (window.confirm("RESET TO DEFAULT SETTINGS?")) {
+            onReset();
+            onClose(); // Close to refresh state from parent
+        }
+    };
+
     return (
-        <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm flex items-center justify-center font-custom-02 animate-fade-in" onClick={onClose}>
+        <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm flex items-center justify-center font-custom-02 animate-fade-in cursor-default" onClick={onClose}>
             <div className="w-96 bg-black border-2 border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2)] flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
                 {/* Header */}
-                <div className="bg-emerald-950/50 border-b border-emerald-500/30 p-3 flex justify-between items-center">
-                    <div className="text-emerald-400 font-bold font-mono uppercase tracking-widest flex items-center gap-2">
+                <div className="bg-emerald-950/50 border-b border-emerald-500/30 p-3 flex justify-between items-center cursor-move">
+                    <div className="text-emerald-400 font-bold font-mono uppercase tracking-widest flex items-center gap-2 select-none">
                         <Terminal size={14} /> {title}
                     </div>
-                    <button onClick={onClose} className="text-emerald-600 hover:text-emerald-300 transition-colors"><X size={16} /></button>
+                    <div className="flex gap-2">
+                        <button onClick={handleReset} className="text-emerald-700 hover:text-red-500 transition-colors" title="Reset Defaults">
+                            <RefreshCw size={14} />
+                        </button>
+                        <button onClick={onClose} className="text-emerald-600 hover:text-emerald-300 transition-colors">
+                            <X size={16} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* List */}
@@ -158,7 +173,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ title, items, activeItem, onC
                             {onSetActive && (
                                 <button 
                                     onClick={() => onSetActive(item)}
-                                    className={`w-3 h-3 rounded-full border border-emerald-500 flex items-center justify-center ${item === activeItem ? 'bg-emerald-500' : ''}`}
+                                    className={`w-3 h-3 rounded-full border border-emerald-500 flex items-center justify-center cursor-pointer ${item === activeItem ? 'bg-emerald-500' : ''}`}
                                 >
                                     {item === activeItem && <div className="w-1 h-1 bg-black rounded-full"></div>}
                                 </button>
@@ -173,13 +188,13 @@ const EditorModal: React.FC<EditorModalProps> = ({ title, items, activeItem, onC
                                             value={editText}
                                             onChange={(e) => setEditText(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && saveEdit(idx)}
-                                            className="w-full bg-emerald-950/50 text-emerald-100 text-xs px-1 border-b border-emerald-500 focus:outline-none"
+                                            className="w-full bg-emerald-950/50 text-emerald-100 text-xs px-1 border-b border-emerald-500 focus:outline-none cursor-text"
                                         />
-                                        <button onClick={() => saveEdit(idx)} className="text-emerald-400 hover:text-emerald-200"><Check size={12} /></button>
+                                        <button onClick={() => saveEdit(idx)} className="text-emerald-400 hover:text-emerald-200 cursor-pointer"><Check size={12} /></button>
                                     </div>
                                 ) : (
                                     <div 
-                                        className={`text-xs truncate font-mono ${onSetActive && item === activeItem ? 'text-emerald-300 font-bold' : 'text-emerald-600'}`}
+                                        className={`text-xs truncate font-mono select-text ${onSetActive && item === activeItem ? 'text-emerald-300 font-bold' : 'text-emerald-600'}`}
                                         title={item}
                                     >
                                         {item}
@@ -189,9 +204,9 @@ const EditorModal: React.FC<EditorModalProps> = ({ title, items, activeItem, onC
 
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 {editingIndex !== idx && (
-                                    <button onClick={() => startEditing(idx)} className="p-1 text-emerald-700 hover:text-emerald-400"><Edit2 size={12} /></button>
+                                    <button onClick={() => startEditing(idx)} className="p-1 text-emerald-700 hover:text-emerald-400 cursor-pointer"><Edit2 size={12} /></button>
                                 )}
-                                <button onClick={() => handleDeleteItem(idx)} className="p-1 text-emerald-900 hover:text-red-500"><Trash2 size={12} /></button>
+                                <button onClick={() => handleDeleteItem(idx)} className="p-1 text-emerald-900 hover:text-red-500 cursor-pointer"><Trash2 size={12} /></button>
                             </div>
                         </div>
                     ))}
@@ -206,11 +221,11 @@ const EditorModal: React.FC<EditorModalProps> = ({ title, items, activeItem, onC
                             onChange={(e) => setNewItemText(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
                             placeholder="ADD_NEW_ENTRY..."
-                            className="flex-1 bg-emerald-950/20 border border-emerald-900/50 text-emerald-100 text-xs px-2 py-1 focus:outline-none focus:border-emerald-500 placeholder-emerald-900"
+                            className="flex-1 bg-emerald-950/20 border border-emerald-900/50 text-emerald-100 text-xs px-2 py-1 focus:outline-none focus:border-emerald-500 placeholder-emerald-900 cursor-text"
                         />
                         <button 
                             onClick={handleAddItem}
-                            className="bg-emerald-900/30 border border-emerald-600/50 text-emerald-400 p-1.5 hover:bg-emerald-600 hover:text-black transition-colors"
+                            className="bg-emerald-900/30 border border-emerald-600/50 text-emerald-400 p-1.5 hover:bg-emerald-600 hover:text-black transition-colors cursor-pointer"
                         >
                             <Plus size={14} />
                         </button>
@@ -273,6 +288,19 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
   const updateActiveOp = (op: string) => {
       setActiveOp(op);
       localStorage.setItem(STORAGE_KEY_ACTIVE_OP, op);
+  };
+
+  // Reset Handlers
+  const resetMessages = () => {
+      setMessages(DEFAULT_MESSAGES);
+      localStorage.removeItem(STORAGE_KEY_MESSAGES);
+  };
+
+  const resetOps = () => {
+      setOps(DEFAULT_OPS);
+      setActiveOp(DEFAULT_OPS[0]);
+      localStorage.removeItem(STORAGE_KEY_OPS);
+      localStorage.removeItem(STORAGE_KEY_ACTIVE_OP);
   };
 
   // Time Sync
@@ -444,7 +472,7 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
             <div className="relative mt-2 flex flex-col items-end">
                 <button 
                     onClick={() => setShowTimerConfig(!showTimerConfig)}
-                    className={`flex items-center gap-2 px-3 py-1 bg-black/90 border-r-4 font-mono text-sm font-bold shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all
+                    className={`flex items-center gap-2 px-3 py-1 bg-black/90 border-r-4 font-mono text-sm font-bold shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all cursor-pointer
                         ${isTimerRunning 
                             ? 'border-red-500 text-red-400 animate-pulse' 
                             : 'border-emerald-500/50 text-emerald-500 hover:text-emerald-400'
@@ -462,28 +490,28 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
                                 type="number" 
                                 value={timerInput}
                                 onChange={(e) => setTimerInput(e.target.value)}
-                                className="w-full bg-emerald-950/30 border-b border-emerald-500/50 text-emerald-400 text-sm font-mono focus:outline-none py-1"
+                                className="w-full bg-emerald-950/30 border-b border-emerald-500/50 text-emerald-400 text-sm font-mono focus:outline-none py-1 cursor-text"
                                 placeholder="10"
                             />
                         </div>
                         <div className="flex justify-between mt-1">
                             <button 
                                 onClick={() => { setIsTimerRunning(false); setTimerSeconds(0); }} 
-                                className="p-1.5 text-red-500 hover:bg-red-950/30 border border-transparent hover:border-red-500/30 rounded"
+                                className="p-1.5 text-red-500 hover:bg-red-950/30 border border-transparent hover:border-red-500/30 rounded cursor-pointer"
                                 title="Reset"
                             >
                                 <RotateCcw size={14} />
                             </button>
                             <button 
                                 onClick={() => setIsTimerRunning(false)} 
-                                className="p-1.5 text-amber-500 hover:bg-amber-950/30 border border-transparent hover:border-amber-500/30 rounded"
+                                className="p-1.5 text-amber-500 hover:bg-amber-950/30 border border-transparent hover:border-amber-500/30 rounded cursor-pointer"
                                 title="Pause"
                             >
                                 <Square size={14} />
                             </button>
                             <button 
                                 onClick={startTimer} 
-                                className="p-1.5 text-emerald-500 hover:bg-emerald-950/30 border border-transparent hover:border-emerald-500/30 rounded"
+                                className="p-1.5 text-emerald-500 hover:bg-emerald-950/30 border border-transparent hover:border-emerald-500/30 rounded cursor-pointer"
                                 title="Start"
                             >
                                 <Play size={14} />
@@ -496,7 +524,7 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
 
         {/* --- Bottom Left: Custom Smoother Ticker (Interactive) --- */}
         <NewsTicker 
-            items={[...messages, `SYSTEM_VER: TL.1.17.74-Q`, `VOID_OS: ONLINE // MONITORING...`]} 
+            items={[...messages, `SYSTEM_VER: TL.1.17.74-R`, `VOID_OS: ONLINE // MONITORING...`]} 
             onEdit={() => setEditingMode('messages')} 
         />
 
@@ -508,6 +536,7 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
                     items={messages}
                     onClose={() => setEditingMode('none')}
                     onSave={saveMessages}
+                    onReset={resetMessages}
                 />
             </div>
         )}
@@ -521,6 +550,7 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
                     onClose={() => setEditingMode('none')}
                     onSave={saveOps}
                     onSetActive={updateActiveOp}
+                    onReset={resetOps}
                 />
             </div>
         )}
