@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 
 // Stream Mode Only Components
-import CustomCursor from './components/CustomCursor';
 import StreamOverlay from './components/StreamOverlay';
 import { Language, ReadingMode, AppConfig } from './types';
 import { ReaderFont, getFontClass } from './components/fonts/fontConfig';
@@ -69,8 +68,7 @@ const App: React.FC = () => {
 
   return (
     <>
-      <CustomCursor />
-
+      {/* System Cursor Restored */}
       <div className={`h-screen w-screen bg-transparent overflow-hidden ${getFontClass(readerFont)}`}>
         <div className="noise-overlay"></div>
         <StreamOverlay 

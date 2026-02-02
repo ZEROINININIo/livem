@@ -1,9 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
-import { Clock, Activity, Wifi, Cpu, Hexagon, AlertTriangle, Radio, User, Video, Ruler, Crosshair, Zap, Timer, Play, Square, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Clock, Activity, Wifi, Cpu, Hexagon, AlertTriangle, Radio, User, Video, Ruler, Crosshair, Zap, Timer, Play, Square, RotateCcw, Edit2, Plus, Trash2, Save, X, Check, Terminal } from 'lucide-react';
 
-// --- 配置区域：在此处修改滚动栏讯息 ---
-const CUSTOM_MESSAGES = [
+// --- Constants & Storage ---
+const STORAGE_KEY_MESSAGES = 'nova_stream_messages_v1';
+const STORAGE_KEY_OPS = 'nova_stream_ops_v1';
+const STORAGE_KEY_ACTIVE_OP = 'nova_stream_active_op_v1';
+
+const DEFAULT_MESSAGES = [
     "欢迎来到直播间 // WELCOME_TO_STREAM",
     "当前进行：毛绒手搓project..",
     "请遵守直播间礼仪 // 保持理性",
@@ -12,15 +16,9 @@ const CUSTOM_MESSAGES = [
     "SYSTEM_STATUS: NOMINAL"
 ];
 
-// Define Ticker Items GLOBALLY to ensure absolute referential stability across renders
-const STATIC_TICKER_ITEMS = [
-    ...CUSTOM_MESSAGES,
-    `SYSTEM_VER: TL.1.17.74-P`, // Updated Version
-    `VOID_OS: ONLINE // MONITORING...`
-];
+const DEFAULT_OPS = ["ZEROXV", "GUEST", "ADMIN"];
 
 // --- 样式隔离组件 (Static) ---
-// Defined outside to prevent re-evaluation/re-injection of keyframes
 const TickerStyles = React.memo(() => (
     <style>{`
         @keyframes ticker-slide-up {
@@ -33,40 +31,52 @@ const TickerStyles = React.memo(() => (
             animation: ticker-slide-up 4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
         }
     `}</style>
-), () => true); // Always return true (never re-render)
+), () => true);
 
-// --- 滚动组件 (Isolated) ---
-const NewsTicker = React.memo(() => {
+// --- 滚动组件 (Dynamic) ---
+const NewsTicker = ({ items, onEdit }: { items: string[], onEdit: () => void }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
 
     useEffect(() => {
-        // Cycle through messages every 4 seconds
-        // Note: The animation duration in CSS matches this interval for sync
+        if (items.length === 0) return;
         const interval = setInterval(() => {
-            setCurrentIndex((prev) => (prev + 1) % STATIC_TICKER_ITEMS.length);
+            setCurrentIndex((prev) => (prev + 1) % items.length);
         }, 4000);
         return () => clearInterval(interval);
-    }, []);
+    }, [items.length]);
+
+    // Safe access
+    const currentItem = items.length > 0 ? items[currentIndex % items.length] : "NO_DATA // PLEASE_CONFIGURE";
 
     return (
-        <div className="absolute bottom-6 left-4 flex gap-0 w-[420px] pointer-events-auto z-20 h-8 items-stretch font-mono">
+        <div 
+            className="absolute bottom-6 left-4 flex gap-0 w-[420px] pointer-events-auto z-50 h-8 items-stretch font-mono group/ticker cursor-pointer"
+            onClick={onEdit}
+            title="Click to Edit Messages"
+        >
             {/* Ticker Label */}
-            <div className="bg-emerald-600 text-black font-black text-xs px-2 flex items-center gap-1 shrink-0 z-10 shadow-[4px_0_10px_rgba(0,0,0,0.5)]">
+            <div className="bg-emerald-600 text-black font-black text-xs px-2 flex items-center gap-1 shrink-0 z-10 shadow-[4px_0_10px_rgba(0,0,0,0.5)] group-hover/ticker:bg-emerald-500 transition-colors">
                 <AlertTriangle size={14} />
                 <span>NEWS</span>
             </div>
             
             {/* Content Container */}
-            <div className="flex-1 bg-black/80 border-y border-r border-emerald-500/30 relative overflow-hidden group flex items-center">
+            <div className="flex-1 bg-black/80 border-y border-r border-emerald-500/30 relative overflow-hidden flex items-center group-hover/ticker:border-emerald-500/60 transition-colors">
                 {/* Background Grid Texture */}
                 <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(16,185,129,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.3)_1px,transparent_1px)] bg-[size:10px_10px]"></div>
                 
                 {/* Slideshow Content */}
-                {/* using key to trigger animation reset on change, though with CSS animation loop + React interval sync, we can just render the current one inside a wrapper that animates */}
-                <div key={currentIndex} className="px-4 w-full animate-ticker-slide absolute top-0 h-full flex items-center text-emerald-100/90 text-xs">
+                <div key={`${currentIndex}-${items.length}`} className="px-4 w-full animate-ticker-slide absolute top-0 h-full flex items-center text-emerald-100/90 text-xs">
                     <span className="truncate w-full block">
-                        {STATIC_TICKER_ITEMS[currentIndex]}
+                        {currentItem}
                         <span className="opacity-30 text-emerald-500 ml-2">///</span>
+                    </span>
+                </div>
+
+                {/* Edit Hint Overlay */}
+                <div className="absolute inset-0 bg-emerald-900/80 flex items-center justify-center opacity-0 group-hover/ticker:opacity-100 transition-opacity backdrop-blur-[1px]">
+                    <span className="text-[10px] font-bold text-emerald-300 flex items-center gap-2 uppercase tracking-widest">
+                        <Edit2 size={12} /> Edit Feed
                     </span>
                 </div>
             </div>
@@ -80,7 +90,136 @@ const NewsTicker = React.memo(() => {
             </div>
         </div>
     );
-}, () => true); // Never re-render, props are ignored as data is static global
+};
+
+// --- Editor Modal Component ---
+interface EditorModalProps {
+    title: string;
+    items: string[];
+    activeItem?: string;
+    onClose: () => void;
+    onSave: (newItems: string[]) => void;
+    onSetActive?: (item: string) => void;
+}
+
+const EditorModal: React.FC<EditorModalProps> = ({ title, items, activeItem, onClose, onSave, onSetActive }) => {
+    const [localItems, setLocalItems] = useState(items);
+    const [newItemText, setNewItemText] = useState("");
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [editText, setEditText] = useState("");
+
+    const handleAddItem = () => {
+        if (newItemText.trim()) {
+            const updated = [...localItems, newItemText.trim()];
+            setLocalItems(updated);
+            onSave(updated);
+            setNewItemText("");
+        }
+    };
+
+    const handleDeleteItem = (index: number) => {
+        const updated = localItems.filter((_, i) => i !== index);
+        setLocalItems(updated);
+        onSave(updated);
+    };
+
+    const startEditing = (index: number) => {
+        setEditingIndex(index);
+        setEditText(localItems[index]);
+    };
+
+    const saveEdit = (index: number) => {
+        if (editText.trim()) {
+            const updated = [...localItems];
+            updated[index] = editText.trim();
+            setLocalItems(updated);
+            onSave(updated);
+        }
+        setEditingIndex(null);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm flex items-center justify-center font-custom-02 animate-fade-in" onClick={onClose}>
+            <div className="w-96 bg-black border-2 border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2)] flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+                {/* Header */}
+                <div className="bg-emerald-950/50 border-b border-emerald-500/30 p-3 flex justify-between items-center">
+                    <div className="text-emerald-400 font-bold font-mono uppercase tracking-widest flex items-center gap-2">
+                        <Terminal size={14} /> {title}
+                    </div>
+                    <button onClick={onClose} className="text-emerald-600 hover:text-emerald-300 transition-colors"><X size={16} /></button>
+                </div>
+
+                {/* List */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMTAxMDEwIiBmaWxsLW9wYWNpdHk9IjAuNSIvPjwvc3ZnPg==')]">
+                    {localItems.length === 0 && <div className="text-center text-emerald-800 text-xs py-4">NO_DATA_AVAILABLE</div>}
+                    
+                    {localItems.map((item, idx) => (
+                        <div key={idx} className={`group flex items-center gap-2 p-2 border ${onSetActive && item === activeItem ? 'border-emerald-400 bg-emerald-900/20' : 'border-emerald-900/30 bg-black/50 hover:border-emerald-500/50'} transition-all`}>
+                            {onSetActive && (
+                                <button 
+                                    onClick={() => onSetActive(item)}
+                                    className={`w-3 h-3 rounded-full border border-emerald-500 flex items-center justify-center ${item === activeItem ? 'bg-emerald-500' : ''}`}
+                                >
+                                    {item === activeItem && <div className="w-1 h-1 bg-black rounded-full"></div>}
+                                </button>
+                            )}
+                            
+                            <div className="flex-1 min-w-0">
+                                {editingIndex === idx ? (
+                                    <div className="flex items-center gap-2">
+                                        <input 
+                                            autoFocus
+                                            type="text" 
+                                            value={editText}
+                                            onChange={(e) => setEditText(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && saveEdit(idx)}
+                                            className="w-full bg-emerald-950/50 text-emerald-100 text-xs px-1 border-b border-emerald-500 focus:outline-none"
+                                        />
+                                        <button onClick={() => saveEdit(idx)} className="text-emerald-400 hover:text-emerald-200"><Check size={12} /></button>
+                                    </div>
+                                ) : (
+                                    <div 
+                                        className={`text-xs truncate font-mono ${onSetActive && item === activeItem ? 'text-emerald-300 font-bold' : 'text-emerald-600'}`}
+                                        title={item}
+                                    >
+                                        {item}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {editingIndex !== idx && (
+                                    <button onClick={() => startEditing(idx)} className="p-1 text-emerald-700 hover:text-emerald-400"><Edit2 size={12} /></button>
+                                )}
+                                <button onClick={() => handleDeleteItem(idx)} className="p-1 text-emerald-900 hover:text-red-500"><Trash2 size={12} /></button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Add Input */}
+                <div className="p-3 border-t border-emerald-500/30 bg-black/80">
+                    <div className="flex gap-2">
+                        <input 
+                            type="text" 
+                            value={newItemText}
+                            onChange={(e) => setNewItemText(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
+                            placeholder="ADD_NEW_ENTRY..."
+                            className="flex-1 bg-emerald-950/20 border border-emerald-900/50 text-emerald-100 text-xs px-2 py-1 focus:outline-none focus:border-emerald-500 placeholder-emerald-900"
+                        />
+                        <button 
+                            onClick={handleAddItem}
+                            className="bg-emerald-900/30 border border-emerald-600/50 text-emerald-400 p-1.5 hover:bg-emerald-600 hover:text-black transition-colors"
+                        >
+                            <Plus size={14} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 interface StreamOverlayProps {
   language: any;
@@ -92,11 +231,49 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
   const [time, setTime] = useState(new Date());
   const [offset, setOffset] = useState(0); 
 
+  // --- Persistent State ---
+  const [messages, setMessages] = useState<string[]>(() => {
+      try {
+          const saved = localStorage.getItem(STORAGE_KEY_MESSAGES);
+          return saved ? JSON.parse(saved) : DEFAULT_MESSAGES;
+      } catch { return DEFAULT_MESSAGES; }
+  });
+
+  const [ops, setOps] = useState<string[]>(() => {
+      try {
+          const saved = localStorage.getItem(STORAGE_KEY_OPS);
+          return saved ? JSON.parse(saved) : DEFAULT_OPS;
+      } catch { return DEFAULT_OPS; }
+  });
+
+  const [activeOp, setActiveOp] = useState<string>(() => {
+      return localStorage.getItem(STORAGE_KEY_ACTIVE_OP) || DEFAULT_OPS[0];
+  });
+
+  // --- Editor State ---
+  const [editingMode, setEditingMode] = useState<'none' | 'messages' | 'ops'>('none');
+
   // Timer State
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [showTimerConfig, setShowTimerConfig] = useState(false);
   const [timerInput, setTimerInput] = useState("10");
+
+  // Persist Changes
+  const saveMessages = (newMessages: string[]) => {
+      setMessages(newMessages);
+      localStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(newMessages));
+  };
+
+  const saveOps = (newOps: string[]) => {
+      setOps(newOps);
+      localStorage.setItem(STORAGE_KEY_OPS, JSON.stringify(newOps));
+  };
+
+  const updateActiveOp = (op: string) => {
+      setActiveOp(op);
+      localStorage.setItem(STORAGE_KEY_ACTIVE_OP, op);
+  };
 
   // Time Sync
   useEffect(() => {
@@ -229,10 +406,18 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
                 <span className="font-black text-xl tracking-tighter">时域广播电台</span>
             </div>
             
-            <div className="flex items-center gap-2 bg-emerald-950/90 border border-emerald-500/30 px-2 py-0.5 w-fit">
+            {/* Interactive OP Label */}
+            <div 
+                className="flex items-center gap-2 bg-emerald-950/90 border border-emerald-500/30 px-2 py-0.5 w-fit group cursor-pointer hover:border-emerald-400 transition-all hover:bg-emerald-900"
+                onClick={() => setEditingMode('ops')}
+                title="Change Operator"
+            >
                 <User size={10} className="text-emerald-400" />
-                <span className="text-[10px] font-bold text-emerald-400 tracking-wider">OP: ZEROXV</span>
+                <span className="text-[10px] font-bold text-emerald-400 tracking-wider">OP: {activeOp}</span>
                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse ml-1 shadow-[0_0_5px_#10b981]"></span>
+                
+                {/* Edit Hint */}
+                <span className="text-[8px] text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity ml-1 bg-black px-1 border border-emerald-900 rounded">EDIT</span>
             </div>
 
             <div className="flex gap-2 text-[10px] text-emerald-400/80 bg-black/80 px-2 py-0.5 w-fit font-mono">
@@ -309,8 +494,36 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
             </div>
         </div>
 
-        {/* --- Bottom Left: Custom Smoother Ticker (Strictly Isolated) --- */}
-        <NewsTicker />
+        {/* --- Bottom Left: Custom Smoother Ticker (Interactive) --- */}
+        <NewsTicker 
+            items={[...messages, `SYSTEM_VER: TL.1.17.74-Q`, `VOID_OS: ONLINE // MONITORING...`]} 
+            onEdit={() => setEditingMode('messages')} 
+        />
+
+        {/* --- Editors --- */}
+        {editingMode === 'messages' && (
+            <div className="pointer-events-auto">
+                <EditorModal 
+                    title="NEWS_EDITOR"
+                    items={messages}
+                    onClose={() => setEditingMode('none')}
+                    onSave={saveMessages}
+                />
+            </div>
+        )}
+
+        {editingMode === 'ops' && (
+            <div className="pointer-events-auto">
+                <EditorModal 
+                    title="OPERATOR_CONFIG"
+                    items={ops}
+                    activeItem={activeOp}
+                    onClose={() => setEditingMode('none')}
+                    onSave={saveOps}
+                    onSetActive={updateActiveOp}
+                />
+            </div>
+        )}
 
         {/* --- Right Side: Chat Column (Vertical) --- */}
         <div className="absolute top-36 right-4 bottom-20 w-64 pointer-events-auto flex flex-col gap-2 z-10">
