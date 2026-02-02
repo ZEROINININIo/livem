@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 
 // Stream Mode Only Components
-import BootSequence from './components/BootSequence';
 import CustomCursor from './components/CustomCursor';
 import StreamOverlay from './components/StreamOverlay';
 import { Language, ReadingMode, AppConfig } from './types';
@@ -27,9 +26,6 @@ const App: React.FC = () => {
 
   const initialConfig = loadConfig();
 
-  // App State: 'BOOT' -> 'READY'
-  const [appState, setAppState] = useState<'BOOT' | 'READY'>('BOOT');
-  
   // Global Preference State
   const [language, setLanguage] = useState<Language>(initialConfig.language);
   const [crtEnabled, setCrtEnabled] = useState(initialConfig.crtEnabled);
@@ -43,13 +39,16 @@ const App: React.FC = () => {
   const [bgmPlaying, setBgmPlaying] = useState(initialConfig.bgmPlaying);
   const [bgmVolume, setBgmVolume] = useState(initialConfig.bgmVolume);
 
-  // Remove Loader
+  // Remove Loader immediately
   useEffect(() => {
     const loader = document.getElementById('initial-loader');
     if (loader) {
+        loader.style.transition = 'opacity 0.5s';
         loader.style.opacity = '0';
-        setTimeout(() => loader.remove(), 800);
+        setTimeout(() => loader.remove(), 500);
     }
+    // Attempt audio unlock (may be blocked by browser until interaction)
+    unlockGlobalAudio();
   }, []);
 
   // Persist settings
@@ -68,33 +67,18 @@ const App: React.FC = () => {
     localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
   }, [language, crtEnabled, isLightTheme, setupCompleted, bgmPlaying, bgmVolume, readerFont, readingMode, nickname]);
 
-  const handleBootComplete = () => {
-    unlockGlobalAudio();
-    setAppState('READY');
-  };
-
   return (
     <>
       <CustomCursor />
 
-      {appState === 'BOOT' && (
-        <BootSequence 
-          onComplete={handleBootComplete} 
-          isNormalBoot={true} 
-          language={language}
+      <div className={`h-screen w-screen bg-transparent overflow-hidden ${getFontClass(readerFont)}`}>
+        <div className="noise-overlay"></div>
+        <StreamOverlay 
+            language={language}
+            isLightTheme={isLightTheme}
+            nickname={nickname}
         />
-      )}
-
-      {appState === 'READY' && (
-        <div className={`h-screen w-screen bg-transparent overflow-hidden ${getFontClass(readerFont)}`}>
-          <div className="noise-overlay"></div>
-          <StreamOverlay 
-              language={language}
-              isLightTheme={isLightTheme}
-              nickname={nickname}
-          />
-        </div>
-      )}
+      </div>
     </>
   );
 };

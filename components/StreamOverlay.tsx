@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock, Activity, Wifi, Cpu, Hexagon, AlertTriangle, Radio, User, Video, Ruler, Crosshair, Zap, Timer, Play, Square, RotateCcw } from 'lucide-react';
 
 // --- 配置区域：在此处修改滚动栏讯息 ---
@@ -15,7 +15,7 @@ const CUSTOM_MESSAGES = [
 // Define Ticker Items GLOBALLY to ensure absolute referential stability across renders
 const STATIC_TICKER_ITEMS = [
     ...CUSTOM_MESSAGES,
-    `SYSTEM_VER: TL.1.17.74-N`, // Updated Version
+    `SYSTEM_VER: TL.1.17.74-P`, // Updated Version
     `VOID_OS: ONLINE // MONITORING...`
 ];
 

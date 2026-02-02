@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
   <head>
@@ -500,10 +501,11 @@
   <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.561.0"
+    "react": "https://esm.sh/react@18.2.0",
+    "react/": "https://esm.sh/react@18.2.0/",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+    "lucide-react": "https://esm.sh/lucide-react@0.469.0?external=react,react-dom"
   }
 }
 </script>
@@ -614,6 +616,40 @@
         
         window._loaderInterval = interval;
       })();
+    </script>
+
+    <!-- Failsafe: Force entry if stuck for 8 seconds -->
+    <script>
+      setTimeout(function() {
+        var loader = document.getElementById('initial-loader');
+        if (loader && loader.style.opacity !== '0') {
+           console.warn("Loader timeout detected. Forcing entry.");
+           
+           var msg = document.getElementById('current-file');
+           if(msg) {
+               msg.innerText = "TIMEOUT_DETECTED :: AUTO_BYPASS";
+               msg.style.color = "#ef4444";
+           }
+           
+           var btn = document.createElement('button');
+           btn.innerText = "FORCE_ENTRY [DEBUG]";
+           btn.style.marginTop = "20px";
+           btn.style.zIndex = "100000";
+           btn.style.padding = "8px 16px";
+           btn.style.background = "rgba(220, 38, 38, 0.2)";
+           btn.style.border = "1px solid #ef4444";
+           btn.style.color = "#ef4444";
+           btn.style.fontFamily = "monospace";
+           btn.style.fontWeight = "bold";
+           btn.style.cursor = "pointer";
+           btn.onclick = function() { 
+               loader.style.transition = 'opacity 0.5s';
+               loader.style.opacity = '0';
+               setTimeout(function(){ loader.remove(); }, 500); 
+           };
+           loader.appendChild(btn);
+        }
+      }, 8000); 
     </script>
 
     <div id="root"></div>
