@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Activity, Wifi, Cpu, Hexagon, AlertTriangle, Radio, User, Video, Ruler, Crosshair, Zap, Timer, Play, Square, RotateCcw, Edit2, Plus, Trash2, Save, X, Check, Terminal, RefreshCw } from 'lucide-react';
+import { Clock, Activity, Wifi, Cpu, Hexagon, AlertTriangle, Radio, User, Video, Ruler, Crosshair, Zap, Timer, Play, Square, RotateCcw, Edit2, Plus, Trash2, Save, X, Check, Terminal, RefreshCw, Sun, Moon } from 'lucide-react';
 
 // --- Constants & Storage ---
 const STORAGE_KEY_MESSAGES = 'nova_stream_messages_v1';
@@ -34,7 +34,7 @@ const TickerStyles = React.memo(() => (
 ), () => true);
 
 // --- 滚动组件 (Dynamic) ---
-const NewsTicker = ({ items, onEdit }: { items: string[], onEdit: () => void }) => {
+const NewsTicker = ({ items, onEdit, isLightTheme }: { items: string[], onEdit: () => void, isLightTheme: boolean }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
 
     useEffect(() => {
@@ -47,6 +47,10 @@ const NewsTicker = ({ items, onEdit }: { items: string[], onEdit: () => void }) 
 
     // Safe access
     const currentItem = items.length > 0 ? items[currentIndex % items.length] : "NO_DATA // PLEASE_CONFIGURE";
+
+    const themeClass = isLightTheme 
+        ? 'bg-white/90 border-emerald-600/30 text-emerald-900' 
+        : 'bg-black/80 border-emerald-500/30 text-emerald-100/90';
 
     return (
         <div 
@@ -61,12 +65,12 @@ const NewsTicker = ({ items, onEdit }: { items: string[], onEdit: () => void }) 
             </div>
             
             {/* Content Container */}
-            <div className="flex-1 bg-black/80 border-y border-r border-emerald-500/30 relative overflow-hidden flex items-center group-hover/ticker:border-emerald-500/60 transition-colors">
+            <div className={`flex-1 border-y border-r relative overflow-hidden flex items-center group-hover/ticker:border-emerald-500/60 transition-colors ${themeClass}`}>
                 {/* Background Grid Texture */}
                 <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(16,185,129,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.3)_1px,transparent_1px)] bg-[size:10px_10px]"></div>
                 
                 {/* Slideshow Content */}
-                <div key={`${currentIndex}-${items.length}`} className="px-4 w-full animate-ticker-slide absolute top-0 h-full flex items-center text-emerald-100/90 text-xs">
+                <div key={`${currentIndex}-${items.length}`} className="px-4 w-full animate-ticker-slide absolute top-0 h-full flex items-center text-xs">
                     <span className="truncate w-full block">
                         {currentItem}
                         <span className="opacity-30 text-emerald-500 ml-2">///</span>
@@ -101,9 +105,10 @@ interface EditorModalProps {
     onSave: (newItems: string[]) => void;
     onSetActive?: (item: string) => void;
     onReset: () => void;
+    children?: React.ReactNode;
 }
 
-const EditorModal: React.FC<EditorModalProps> = ({ title, items, activeItem, onClose, onSave, onSetActive, onReset }) => {
+const EditorModal: React.FC<EditorModalProps> = ({ title, items, activeItem, onClose, onSave, onSetActive, onReset, children }) => {
     const [localItems, setLocalItems] = useState(items);
     const [newItemText, setNewItemText] = useState("");
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -212,6 +217,13 @@ const EditorModal: React.FC<EditorModalProps> = ({ title, items, activeItem, onC
                     ))}
                 </div>
 
+                {/* Extra Children (Theme Toggle etc) */}
+                {children && (
+                    <div className="p-3 bg-emerald-950/20 border-t border-emerald-500/20">
+                        {children}
+                    </div>
+                )}
+
                 {/* Add Input */}
                 <div className="p-3 border-t border-emerald-500/30 bg-black/80">
                     <div className="flex gap-2">
@@ -239,10 +251,11 @@ const EditorModal: React.FC<EditorModalProps> = ({ title, items, activeItem, onC
 interface StreamOverlayProps {
   language: any;
   isLightTheme: boolean;
+  setIsLightTheme: (val: boolean) => void;
   nickname?: string; 
 }
 
-const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, nickname }) => {
+const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, setIsLightTheme, nickname }) => {
   const [time, setTime] = useState(new Date());
   const [offset, setOffset] = useState(0); 
 
@@ -367,6 +380,39 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
     }
   };
 
+  // --- Dynamic Theme Styles ---
+  const theme = isLightTheme ? {
+      bg: 'bg-white/90',
+      text: 'text-emerald-900',
+      textDim: 'text-emerald-700/80',
+      border: 'border-emerald-600/30',
+      headerBg: 'bg-white/90',
+      shadow: 'shadow-[0_0_15px_rgba(16,185,129,0.1)]',
+      // Chat Column
+      chatBg: 'bg-white/40',
+      chatBorder: 'border-emerald-600/40',
+      chatHeader: 'bg-emerald-100/90',
+      chatHeaderText: 'text-emerald-900',
+      // Main Frame
+      frameBorder: 'border-emerald-600/30',
+      logoFilter: 'brightness-0 invert opacity-10'
+  } : {
+      bg: 'bg-black/90',
+      text: 'text-emerald-400',
+      textDim: 'text-emerald-600/80',
+      border: 'border-emerald-500/30',
+      headerBg: 'bg-black/90',
+      shadow: 'shadow-[0_0_15px_rgba(16,185,129,0.3)]',
+      // Chat Column
+      chatBg: 'bg-black/30',
+      chatBorder: 'border-emerald-500/20',
+      chatHeader: 'bg-emerald-950/80',
+      chatHeaderText: 'text-emerald-400',
+      // Main Frame
+      frameBorder: 'border-emerald-500/20',
+      logoFilter: 'opacity-90'
+  };
+
   return (
     <div className="fixed inset-0 z-[9999] overflow-hidden pointer-events-none font-custom-02">
         {/* Inject Styles Once */}
@@ -383,14 +429,14 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
         <div className="fixed inset-0 z-[10000] pointer-events-none bg-[radial-gradient(circle,transparent_60%,rgba(0,0,0,0.6)_100%)]" />
 
         {/* === MAIN WORKBENCH CAMERA FRAME === */}
-        <div className="absolute top-36 bottom-24 left-4 right-72 border border-emerald-500/20 rounded-sm pointer-events-none flex flex-col justify-between transition-all duration-300">
+        <div className={`absolute top-36 bottom-24 left-4 right-72 border rounded-sm pointer-events-none flex flex-col justify-between transition-all duration-300 ${theme.frameBorder}`}>
              
              {/* Background Watermark */}
-             <div className="absolute inset-0 flex items-center justify-center opacity-100">
+             <div className="absolute inset-0 flex items-center justify-center">
                  <img 
                     src="https://cdn.imgos.cn/vip/2026/02/01/697f7380b52b0.png" 
                     alt="Background Watermark" 
-                    className="w-[80%] h-[80%] object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.6)] opacity-90"
+                    className={`w-[80%] h-[80%] object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.6)] ${theme.logoFilter}`}
                  />
              </div>
 
@@ -408,13 +454,13 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-emerald-500 z-10"></div>
 
              {/* Cam Label */}
-             <div className="absolute -top-3 left-12 bg-black px-3 py-0.5 text-emerald-500 font-bold border border-emerald-500/50 flex items-center gap-2 shadow-[0_0_10px_rgba(16,185,129,0.2)] z-10">
+             <div className={`absolute -top-3 left-12 px-3 py-0.5 font-bold border flex items-center gap-2 z-10 ${theme.bg} ${theme.text} ${theme.border} ${theme.shadow}`}>
                 <Video size={14} className="animate-pulse" />
                 <span className="text-xs tracking-widest">CAM_01</span>
              </div>
 
              {/* REC Indicator */}
-             <div className="absolute top-4 right-4 flex items-center gap-2 bg-black/90 px-2 py-1 rounded border border-red-500/30 z-10">
+             <div className={`absolute top-4 right-4 flex items-center gap-2 px-2 py-1 rounded border border-red-500/30 z-10 ${theme.bg}`}>
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_red]"></div>
                 <span className="text-xs font-mono text-red-500 font-bold tracking-widest">REC</span>
              </div>
@@ -429,26 +475,26 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
 
         {/* --- Top Left: Branding & Status --- */}
         <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-auto z-20">
-            <div className="flex items-center gap-2 bg-black/90 text-emerald-500 border-l-4 border-emerald-500 px-3 py-1">
+            <div className={`flex items-center gap-2 border-l-4 border-emerald-500 px-3 py-1 ${theme.headerBg} ${theme.text}`}>
                 <Hexagon size={18} className="animate-spin-slow" />
                 <span className="font-black text-xl tracking-tighter">时域广播电台</span>
             </div>
             
             {/* Interactive OP Label */}
             <div 
-                className="flex items-center gap-2 bg-emerald-950/90 border border-emerald-500/30 px-2 py-0.5 w-fit group cursor-pointer hover:border-emerald-400 transition-all hover:bg-emerald-900"
+                className={`flex items-center gap-2 border px-2 py-0.5 w-fit group cursor-pointer transition-all ${theme.bg} ${theme.border} hover:border-emerald-400`}
                 onClick={() => setEditingMode('ops')}
                 title="Change Operator"
             >
                 <User size={10} className="text-emerald-400" />
-                <span className="text-[10px] font-bold text-emerald-400 tracking-wider">OP: {activeOp}</span>
+                <span className={`text-[10px] font-bold tracking-wider ${theme.text}`}>OP: {activeOp}</span>
                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse ml-1 shadow-[0_0_5px_#10b981]"></span>
                 
                 {/* Edit Hint */}
-                <span className="text-[8px] text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity ml-1 bg-black px-1 border border-emerald-900 rounded">EDIT</span>
+                <span className="text-[8px] opacity-0 group-hover:opacity-100 transition-opacity ml-1 bg-black px-1 border border-emerald-900 rounded text-emerald-500">EDIT</span>
             </div>
 
-            <div className="flex gap-2 text-[10px] text-emerald-400/80 bg-black/80 px-2 py-0.5 w-fit font-mono">
+            <div className={`flex gap-2 text-[10px] px-2 py-0.5 w-fit font-mono ${theme.bg} ${theme.textDim}`}>
                 <span className="flex items-center gap-1"><Cpu size={10} /> 32%</span>
                 <span className="flex items-center gap-1"><Activity size={10} /> STABLE</span>
                 <span className="flex items-center gap-1"><Wifi size={10} /> 1ms</span>
@@ -459,12 +505,12 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
         <div className="absolute top-4 right-4 flex flex-col items-end gap-1 pointer-events-auto z-20">
             <div className="flex items-center gap-2">
                 <div className="px-2 py-0.5 bg-red-600 text-white text-xs font-black tracking-widest animate-pulse">LIVE</div>
-                <div className="bg-black/90 text-emerald-400 px-3 py-1 border-r-4 border-emerald-500 text-xl font-bold font-mono shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                <div className={`px-3 py-1 border-r-4 border-emerald-500 text-xl font-bold font-mono ${theme.headerBg} ${theme.text} ${theme.shadow}`}>
                     {time.toLocaleTimeString('en-US', { hour12: false })}
                     <span className="text-xs opacity-50 ml-1">.{Math.floor(time.getMilliseconds() / 100)}</span>
                 </div>
             </div>
-            <div className="text-[10px] text-emerald-600/80 tracking-[0.2em] uppercase font-mono">
+            <div className={`text-[10px] tracking-[0.2em] uppercase font-mono ${theme.textDim}`}>
                 {time.toLocaleDateString()} // ST.?/???
             </div>
 
@@ -472,10 +518,10 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
             <div className="relative mt-2 flex flex-col items-end">
                 <button 
                     onClick={() => setShowTimerConfig(!showTimerConfig)}
-                    className={`flex items-center gap-2 px-3 py-1 bg-black/90 border-r-4 font-mono text-sm font-bold shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all cursor-pointer
+                    className={`flex items-center gap-2 px-3 py-1 border-r-4 font-mono text-sm font-bold transition-all cursor-pointer ${theme.bg} ${theme.shadow}
                         ${isTimerRunning 
                             ? 'border-red-500 text-red-400 animate-pulse' 
-                            : 'border-emerald-500/50 text-emerald-500 hover:text-emerald-400'
+                            : `border-emerald-500/50 ${theme.text}`
                         }`}
                 >
                     <Timer size={14} />
@@ -525,7 +571,8 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
         {/* --- Bottom Left: Custom Smoother Ticker (Interactive) --- */}
         <NewsTicker 
             items={[...messages, `SYSTEM_VER: TL.1.17.74-R`, `VOID_OS: ONLINE // MONITORING...`]} 
-            onEdit={() => setEditingMode('messages')} 
+            onEdit={() => setEditingMode('messages')}
+            isLightTheme={isLightTheme}
         />
 
         {/* --- Editors --- */}
@@ -551,17 +598,29 @@ const StreamOverlay: React.FC<StreamOverlayProps> = ({ language, isLightTheme, n
                     onSave={saveOps}
                     onSetActive={updateActiveOp}
                     onReset={resetOps}
-                />
+                >
+                    {/* Hidden Theme Toggle for Operators */}
+                    <button 
+                        onClick={() => setIsLightTheme(!isLightTheme)}
+                        className={`w-full flex items-center justify-between px-3 py-2 border border-dashed transition-all text-xs font-mono font-bold uppercase cursor-pointer ${isLightTheme ? 'bg-white text-black border-black hover:bg-gray-100' : 'bg-black text-white border-white hover:bg-gray-900'}`}
+                    >
+                        <span className="flex items-center gap-2">
+                            {isLightTheme ? <Sun size={12} /> : <Moon size={12} />}
+                            THEME_SWITCH
+                        </span>
+                        <span>{isLightTheme ? 'LIGHT' : 'DARK'}</span>
+                    </button>
+                </EditorModal>
             </div>
         )}
 
         {/* --- Right Side: Chat Column (Vertical) --- */}
         <div className="absolute top-36 right-4 bottom-20 w-64 pointer-events-auto flex flex-col gap-2 z-10">
-            <div className="flex-1 bg-black/30 border border-emerald-500/20 flex flex-col relative overflow-hidden group">
-                <div className="h-6 bg-emerald-950/80 border-b border-emerald-500/30 flex items-center justify-between px-2 shrink-0">
+            <div className={`flex-1 border flex flex-col relative overflow-hidden group ${theme.chatBg} ${theme.chatBorder}`}>
+                <div className={`h-6 border-b flex items-center justify-between px-2 shrink-0 ${theme.chatHeader} ${theme.chatBorder}`}>
                     <div className="flex items-center gap-2">
                         <Radio size={10} className="text-emerald-500 animate-pulse" />
-                        <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">COMMS_LINK</span>
+                        <span className={`text-[9px] font-bold uppercase tracking-wider ${theme.chatHeaderText}`}>COMMS_LINK</span>
                     </div>
                     <div className="flex gap-0.5">
                         <div className="w-1 h-1 bg-emerald-500 rounded-full"></div>

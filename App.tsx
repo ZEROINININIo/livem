@@ -74,6 +74,7 @@ const App: React.FC = () => {
         <StreamOverlay 
             language={language}
             isLightTheme={isLightTheme}
+            setIsLightTheme={setIsLightTheme}
             nickname={nickname}
         />
       </div>
